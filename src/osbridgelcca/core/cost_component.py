@@ -30,6 +30,7 @@ class InitialConstructionCost(CostComponent):
 
     def __init__(self, quantity, rate):
         super().__init__(amount=quantity * rate, category="Economic", is_initial=True, is_recurring=False, present_worth_factor=1.00)
+        
         self.quantity = quantity
         self.rate = rate
 
@@ -50,6 +51,7 @@ class InitialCarbonEmissionCost(CostComponent):
         return (self.material_quantity * self.carbon_emission_factor) * self.carbon_cost * self.present_worth_factor
 
 
+
 class TimeCost(CostComponent):
     """Calculates economic losses due to construction delays."""
 
@@ -63,7 +65,7 @@ class TimeCost(CostComponent):
 
     def calculate_cost(self):
         return self.construction_cost * self.interest_rate * self.time * self.investment_ratio * self.present_worth_factor
-
+    
 
 class RoadUserCost(CostComponent):
     """Evaluates economic impact on road users due to delays and detours."""
@@ -147,6 +149,18 @@ class RepairAndRehabilitationCost(CostComponent):
         pwf = sum(1 / ((1 + discount_rate) ** (i * period)) for i in range(1, int(design_life / period) + 1))
         cost = repair_cost_rate * construction_cost * pwf
         super().__init__(amount=cost, category="Economic", is_initial=False, is_recurring=True, present_worth_factor=pwf)
+
+    def calculate_cost(self):
+        return self.amount
+
+
+class ReconstructionCost(CostComponent):
+    """Accounts for partial or complete reconstruction of the bridge due to structural failures or obsolescence."""
+
+    def __init__(self, demolition_cost, reconstruction_cost, reconstruction_carbon_cost, reconstruction_time_cost, reconstruction_roaduser_cost, reconstruction_rerouting_carbon_cost, design_life, discount_rate):
+        pwf = 1 / ((1 + discount_rate) ** design_life)
+        cost = (demolition_cost + reconstruction_cost + reconstruction_carbon_cost + reconstruction_time_cost + reconstruction_roaduser_cost + reconstruction_rerouting_carbon_cost) * pwf 
+        super().__init__(amount=cost, category="Economic", is_initial=False, is_recurring=False, present_worth_factor=pwf)
 
     def calculate_cost(self):
         return self.amount
