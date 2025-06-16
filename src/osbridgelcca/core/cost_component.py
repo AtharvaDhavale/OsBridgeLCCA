@@ -299,7 +299,7 @@ if __name__ == "__main__":
 
     # 4. Road User Cost Calculation
     # User defines vehicle types, lane type, roughness, and RF
-    from osbridgelcca.core.cost_defaults import get_vehicle_types, get_lane_types, get_roughness_values, get_rf_values
+    from osbridgelcca.core.material_types_consts import get_vehicle_types, get_lane_types, get_roughness_values, get_rf_values
 
     # Example user input (can be replaced by actual UI/db input)
     user_vehicle_data = [

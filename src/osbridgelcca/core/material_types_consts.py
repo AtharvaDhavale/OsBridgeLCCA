@@ -113,3 +113,40 @@ def get_all_material_unit_combinations(material_costs):
             for unit in units:
                 combinations.append((material, grade, unit))
     return combinations
+
+
+# Road User Cost Components
+VEHICLE_TYPES = [
+    "Small Car",
+    "Big Car",
+    "Two Wheeler",
+    "Bus",
+    "LCV",
+    "MCV",
+    "HCV"
+]
+
+LANE_TYPES = [
+    "Single Lane",
+    "Intermediate Lane",
+    "Two Lane",
+    "Three Lane",
+    "Four Lane"
+]
+
+ROUGHNESS_VALUES = [2000, 3000, 4000, 6000]
+
+RF_VALUES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+
+
+def get_vehicle_types():
+    return VEHICLE_TYPES
+
+def get_lane_types():
+    return LANE_TYPES
+
+def get_roughness_values():
+    return ROUGHNESS_VALUES
+
+def get_rf_values():
+    return RF_VALUES
