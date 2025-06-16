@@ -243,10 +243,9 @@ if __name__ == "__main__":
 
     # user inputs will be here, for eg:
     user_materials = [
-        {"material": "concrete", "grade": "M25", "unit": "cum", "quantity": 100, "rate": 600},  # eg (quantity: cum, rate: INR/cum)
-        {"material": "steel", "grade": "E 250(Fe 410W)A", "unit": "MT", "quantity": 10, "rate": 50000},  # eg (quantity: MT, rate: INR/MT)
-        {"material": "mastic asphalt", "grade": "default", "unit": "sqm", "quantity": 200, "rate": 300},  # eg (quantity: sqm, rate: INR/sqm)
-        
+        {"material": "concrete", "grade": "M40", "unit": "cum", "quantity": 214, "rate": 11994},  # eg (quantity: cum, rate: INR/cum)
+        {"material": "steel", "grade": "E 250(Fe 410W)A", "unit": "MT", "quantity": 27.99, "rate": 91565},  # eg (quantity: MT, rate: INR/MT)
+        {"material": "steel", "grade": "E 300(Fe 440)", "unit": "MT", "quantity": 5.69, "rate": 185100},  # eg (quantity: sqm, rate: INR/sqm)     
     ]
 
     # 1. Initial Construction Cost Calculation
@@ -287,8 +286,8 @@ if __name__ == "__main__":
     print("Total Initial Carbon Emission Cost:", total_carbon_emission_cost)  # INR
 
     # 3. Time Cost Calculation
-    interest_rate = 0.08  # eg (fraction)
-    time = 2  # eg (years)
+    interest_rate = 0.1  # eg (fraction)
+    time = 0.75  # eg (years)
     investment_ratio = 0.5  # eg (fraction)
     time_cost_component = TimeCost(
         construction_cost=total_initial_construction_cost,
@@ -299,8 +298,8 @@ if __name__ == "__main__":
     print("Time Cost:", time_cost_component.calculate_cost())  # INR
 
     # 4. Road User Cost Calculation
-    vehicles_affected = 10000  # eg (number)
-    vehicle_operation_cost = 15  # eg (INR/vehicle/day)
+    vehicles_affected = 1500 # eg (number)
+    vehicle_operation_cost = 6.62  # eg (INR/vehicle/day)
     construction_time_days = time * 365  # eg (days)
     road_user_cost_component = RoadUserCost(
         vehicles_affected=vehicles_affected,
@@ -310,7 +309,7 @@ if __name__ == "__main__":
     print("Road User Cost:", road_user_cost_component.calculate_cost())  # INR
 
     # 5. Additional Carbon Emission Cost Calculation
-    reroute_distance = 5  # eg (km)
+    reroute_distance = 2  # eg (km)
     co2_emission_per_km = get_carbon_emission_factor_per_km()  # eg (default, kgCO2e/km)
     additional_carbon_emission_component = AdditionalCarbonEmissionCost(
         vehicles_affected=vehicles_affected,
