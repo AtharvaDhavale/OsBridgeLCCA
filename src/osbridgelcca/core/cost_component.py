@@ -245,7 +245,7 @@ if __name__ == "__main__":
     user_materials = [
         {"material": "concrete", "grade": "M40", "unit": "cum", "quantity": 214, "rate": 11994},  # eg (quantity: cum, rate: INR/cum)
         {"material": "steel", "grade": "E 250(Fe 410W)A", "unit": "MT", "quantity": 27.99, "rate": 91565},  # eg (quantity: MT, rate: INR/MT)
-        {"material": "steel", "grade": "E 300(Fe 440)", "unit": "MT", "quantity": 5.69, "rate": 185100},  # eg (quantity: sqm, rate: INR/sqm)     
+        {"material": "steel", "grade": "E 300(Fe 440)", "unit": "MT", "quantity": 5.69, "rate": 185100},  # eg (quantity: MT, rate: INR/MT)     
     ]
 
     # 1. Initial Construction Cost Calculation
@@ -273,8 +273,8 @@ if __name__ == "__main__":
     for item in user_materials:
         if item["material"] == "steel":
             qty = item["quantity"]
-            unit = item["unit"].lower()
-            if unit == "mt":
+            unit = item["unit"].upper()
+            if unit == "MT":
                 qty = qty * 1000  # eg (1 MT = 1000 kg)
             # If already in kg, use as is
             total_steel_kg += qty
@@ -298,21 +298,45 @@ if __name__ == "__main__":
     print("Time Cost:", time_cost_component.calculate_cost())  # INR
 
     # 4. Road User Cost Calculation
-    vehicles_affected = 1500 # eg (number)
-    vehicle_operation_cost = 6.62  # eg (INR/vehicle/day)
+    # User defines vehicle types, lane type, roughness, and RF
+    from osbridgelcca.core.cost_defaults import get_vehicle_types, get_lane_types, get_roughness_values, get_rf_values
+
+    # Example user input (can be replaced by actual UI/db input)
+    user_vehicle_data = [
+        {"type": "Small Car", "count": 500, "operation_cost": 5.5},
+        {"type": "Bus", "count": 100, "operation_cost": 15.0},
+        # ... add more as needed
+    ]
+    lane_type = "Two Lane"  # user input
+    roughness = 3000        # user input
+    rf = 10                 # user input
+
+    # If user does not define vehicle types, default to Big Car
+    if not user_vehicle_data:
+        user_vehicle_data = [{"type": "Big Car", "count": 1, "operation_cost": 6.62}]
+
+    # Sum total road user cost for all vehicle types
+    total_road_user_cost = 0
+    total_vehicles_affected = 0
+    for v in user_vehicle_data:
+        total_road_user_cost += v["count"] * v["operation_cost"]
+        total_vehicles_affected += v["count"]
+
     construction_time_days = time * 365  # eg (days)
+    total_road_user_cost *= construction_time_days
+
     road_user_cost_component = RoadUserCost(
-        vehicles_affected=vehicles_affected,
-        vehicle_operation_cost=vehicle_operation_cost,
+        vehicles_affected=total_vehicles_affected,  # user-defined count
+        vehicle_operation_cost=total_road_user_cost / construction_time_days if construction_time_days else 0,
         construction_time=construction_time_days
     )
-    print("Road User Cost:", road_user_cost_component.calculate_cost())  # INR
+    print("Road User Cost (all vehicle types):", road_user_cost_component.calculate_cost())  # INR
 
     # 5. Additional Carbon Emission Cost Calculation
     reroute_distance = 2  # eg (km)
     co2_emission_per_km = get_carbon_emission_factor_per_km()  # eg (default, kgCO2e/km)
     additional_carbon_emission_component = AdditionalCarbonEmissionCost(
-        vehicles_affected=vehicles_affected,
+        vehicles_affected=total_vehicles_affected,
         reroute_distance=reroute_distance,
         co2_emission_per_km=co2_emission_per_km,
         carbon_cost=carbon_cost
@@ -396,22 +420,25 @@ if __name__ == "__main__":
     scrap_rate = get_structural_steel_scrap_rate()  # eg (default, fraction)
     recycling_discount_rate = 0.05  # eg (fraction)
     recycling_design_life = 50  # eg (years)
-    total_steel_quantity_kg = 0
-    for item in user_materials:
-        if item["material"] == "steel":
-            qty = item["quantity"]
-            unit = item["unit"].lower()
-            if unit == "mt":
-                qty = qty * 1000  # eg (1 MT = 1000 kg)
-            total_steel_quantity_kg += qty
+
+    # For demonstration, assuming user provides both quantity and unit
+    user_input_steel_quantity = 15  # eg (user input, 15 MT)
+    user_input_steel_unit = "MT"   # eg (user input, can be 'MT' or 'kg')
+
+    # Convert all user input to kg
+    if user_input_steel_unit.upper() == "MT":
+        user_input_steel_quantity_kg = user_input_steel_quantity * 1000  # 1 MT = 1000 kg
+    else:
+        user_input_steel_quantity_kg = user_input_steel_quantity  # already in kg
+
     recycling_component = RecyclingCost(
         scrap_value=scrap_value,
-        quantity=total_steel_quantity_kg,
+        quantity=user_input_steel_quantity_kg,
         scrap_rate=scrap_rate,
         discount_rate=recycling_discount_rate,
         design_life=recycling_design_life
     )
-    print("Recycling Cost:", recycling_component.calculate_cost())  # INR
+    print("Recycling Cost (user-input steel only):", recycling_component.calculate_cost())  # INR
 
     # 12. Reconstruction Cost Calculation 
     demolition_cost = demolition_component.calculate_cost()  # eg (INR, use previously calculated demolition cost)
@@ -436,7 +463,7 @@ if __name__ == "__main__":
 
 
 
-    
+
 
 
 

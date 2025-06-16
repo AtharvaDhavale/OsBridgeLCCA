@@ -49,6 +49,25 @@ MATERIAL_COSTS_TEMPLATE = {
             "default": {"sqm": 0.0}
         }
     },
+    "prestressing tendons": {
+        "units": ["MT", "kg"],
+        "grades": {
+            "E 165(Fe 290)": {"MT": 0.0, "kg": 0.0},
+            "E 250(Fe 410W)A": {"MT": 0.0, "kg": 0.0},
+            "E 250(Fe 410W)B": {"MT": 0.0, "kg": 0.0},
+            "E 250(Fe 410)C": {"MT": 0.0, "kg": 0.0},
+            "E 300(Fe 440)": {"MT": 0.0, "kg": 0.0},
+            "E 350(Fe 490)": {"MT": 0.0, "kg": 0.0},
+            "E 410(Fe 540)": {"MT": 0.0, "kg": 0.0},
+            "E 450(Fe 570)D": {"MT": 0.0, "kg": 0.0},
+        }
+    },
+    "other": {
+        "units": ["MT", "kg", "cum", "sqm", "ltr"],  # All supported units
+        "grades": {
+            "default": {unit: 0.0 for unit in ["MT", "kg", "cum", "sqm", "ltr"]}
+        }
+    },
 }
 
 
