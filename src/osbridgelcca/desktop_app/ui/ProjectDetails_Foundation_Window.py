@@ -9,8 +9,9 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from form_data_storage import save_form_data
+from .form_data_storage import save_form_data
 from PyQt5.QtWidgets import QMessageBox
+from ...core import material_types_consts  # Fixed relative import
 
 class Ui_Foundation_Dialog(object):
     def setupUi(self, Foundation_Dialog):
@@ -249,6 +250,9 @@ class Ui_Foundation_Dialog(object):
         self.comboBox_2.setGeometry(QtCore.QRect(30, 100, 140, 22))
         self.comboBox_2.setStyleSheet("background-color: #ffffff")
         self.comboBox_2.setObjectName("comboBox_2")
+        # Populate Type of Material dropdown with materials from material_types_consts
+        self.material_costs = material_types_consts.get_material_cost_template()
+        self.comboBox_2.addItems(material_types_consts.get_materials(self.material_costs))
         self.comboBox_3 = QtWidgets.QComboBox(self.widget_2)
         self.comboBox_3.setGeometry(QtCore.QRect(30, 130, 140, 22))
         self.comboBox_3.setStyleSheet("background-color: #ffffff")
@@ -266,15 +270,20 @@ class Ui_Foundation_Dialog(object):
         font.setPointSize(10)
         self.lineEdit_2.setFont(font)
         self.lineEdit_2.setStyleSheet("background-color: #ffffff")
-        self.lineEdit_2.setObjectName("lineEdit_2")
-        self.label_10 = QtWidgets.QLabel(self.widget_2)
-        self.label_10.setGeometry(QtCore.QRect(340, 100, 51, 20))
-        font = QtGui.QFont()
-        font.setPointSize(10)
-        self.label_10.setFont(font)
-        self.label_10.setStyleSheet("background-color: #ffffff")
-        self.label_10.setAlignment(QtCore.Qt.AlignCenter)
-        self.label_10.setObjectName("label_10")
+        self.lineEdit_2.setObjectName("lineEdit_2")        # Add Unit dropdown for first section (replace label_10)
+        self.unitComboBox = QtWidgets.QComboBox(self.widget_2)
+        self.unitComboBox.setGeometry(QtCore.QRect(340, 100, 80, 22))
+        self.unitComboBox.setStyleSheet("background-color: #ffffff")
+        self.unitComboBox.setObjectName("unitComboBox")
+        # Populate with units for the initial material
+        initial_material = self.comboBox_2.currentText()
+        self.unitComboBox.addItems(material_types_consts.get_units(self.material_costs, initial_material))
+        # Update units when comboBox_2 changes
+        self.comboBox_2.currentIndexChanged.connect(self._update_unit_dropdown)
+        # Remove label_10 (unit QLabel for first section) if it exists
+        if hasattr(self, 'label_10') and self.label_10 is not None:
+            self.label_10.deleteLater()
+        self.label_10 = None
         self.label_11 = QtWidgets.QLabel(self.widget_2)
         self.label_11.setGeometry(QtCore.QRect(340, 130, 51, 20))
         font = QtGui.QFont()
@@ -514,11 +523,16 @@ class Ui_Foundation_Dialog(object):
             "component": self.comboBox.currentText(),
             "sub_component": self.comboBox_2.currentText(),
             "quantity": self.lineEdit.text(),
-            "unit": self.label_10.text(),
+            "unit": self.unitComboBox.currentText(),
             "rate": self.lineEdit_3.text(),
             "material_type": self.comboBox_4.currentText(),
         }
         save_form_data("Foundation_Dialog", data)
+
+    def _update_unit_dropdown(self):
+        material = self.comboBox_2.currentText()
+        self.unitComboBox.clear()
+        self.unitComboBox.addItems(material_types_consts.get_units(self.material_costs, material))
 
     def retranslateUi(self, Foundation_Dialog):
         _translate = QtCore.QCoreApplication.translate
@@ -540,7 +554,7 @@ class Ui_Foundation_Dialog(object):
         self.textBrowser.setHtml(_translate("Foundation_Dialog", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'MS Shell Dlg 2\'; font-size:8.25pt; font-weight:400; font-style:normal;\">\n"
+"</style></head><body style=\" font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;\">\n"
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:10pt; color:#aa8b8b;\">Initial Construction Cost</span></p>\n"
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:10pt; color:#aa8b8b;\">Initial Carbon emission Cost</span></p>\n"
 "<p style=\" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><span style=\" font-size:10pt; color:#aa8b8b;\">Time Cost</span></p>\n"
@@ -564,13 +578,13 @@ class Ui_Foundation_Dialog(object):
         self.label_7.setText(_translate("Foundation_Dialog", "Quantity"))
         self.label_8.setText(_translate("Foundation_Dialog", "Unit"))
         self.label_9.setText(_translate("Foundation_Dialog", "Rate"))
-        self.label_10.setText(_translate("Foundation_Dialog", "<html><head/><body><p><span style=\" font-size:10pt;\">m</span><span style=\" font-size:10pt; vertical-align:super;\">3</span></p></body></html>"))
+        # self.label_10.setText(_translate("Foundation_Dialog", "<html><head/><body><p><span style=\" font-size:10pt;\">m</span><span style=\" font-size:10pt; vertical-align:super;\">3</span></p></body></html>"))
         self.label_11.setText(_translate("Foundation_Dialog", "kg"))
         self.pushButton_3.setText(_translate("Foundation_Dialog", "+ Add Material"))
         self.label_12.setText(_translate("Foundation_Dialog", "Type of Material"))
-        self.comboBox_4.setItemText(0, _translate("Foundation_Dialog", "Earthwork"))
-        self.comboBox_4.addItem(_translate("Foundation_Dialog", "Foundations"))
-        self.comboBox_4.setItemText(1, _translate("Foundation_Dialog", "Foundation Protections"))
+        self.comboBox_4.setItemText(0, _translate("Foundation_Dialog", "Foundations"))
+        self.comboBox_4.setItemText(1, _translate("Foundation_Dialog", "Foundation Protection"))
+        self.comboBox_4.addItem(_translate("Foundation_Dialog", "Excavation"))
         self.label_13.setText(_translate("Foundation_Dialog", "Rate"))
         self.label_14.setText(_translate("Foundation_Dialog", "kg"))
         self.label_15.setText(_translate("Foundation_Dialog", "Rate Data Source"))
