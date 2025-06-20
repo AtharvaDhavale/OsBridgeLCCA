@@ -243,6 +243,7 @@ if __name__ == "__main__":
     from .cost_defaults import get_annual_routine_inspection_cost_rate
 
     # === USER INPUTS (specific to project/material/vehicles) ===
+    
     material_costs = get_material_cost_template()
     user_materials = [
         {"material": "concrete", "grade": "M40", "unit": "cum", "quantity": 214, "rate": 11994},
@@ -260,11 +261,15 @@ if __name__ == "__main__":
             {"Vehicle_Type": "Two Wheelers", "Count": 4000},
         ]
     }
+
+    # Inputs for calculating Recycling Cost
+
     user_input_steel_quantity = 0  # eg (user input, 15 MT or 15000 kg)
     user_input_steel_unit = "MT"   # eg (user input, can be 'MT' or 'kg')
-    analysis_period = 50  # years (default, replace with user input as needed)
+    
 
     # === SHARED INPUTS (define once and use everywhere) ===
+
     analysis_period = 50  # years (default, replace with user input as needed)
     design_life = 50  # years
     discount_rate = 0.0425  # fraction
