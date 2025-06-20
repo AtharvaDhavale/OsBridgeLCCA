@@ -240,16 +240,18 @@ class ReconstructionCost(CostComponent):
 
 
 if __name__ == "__main__":
-    from .cost_defaults import get_annual_routine_inspection_cost_rate
 
     # === USER INPUTS (specific to project/material/vehicles) ===
-    
+
     material_costs = get_material_cost_template()
     user_materials = [
         {"material": "concrete", "grade": "M40", "unit": "cum", "quantity": 214, "rate": 11994},
         {"material": "steel", "grade": "E 250(Fe 410W)A", "unit": "MT", "quantity": 27.99, "rate": 91565},
         {"material": "steel", "grade": "E 300(Fe 440)", "unit": "MT", "quantity": 5.69, "rate": 185100},
     ]
+
+    # Inputs for calculating Road User Cost
+    
     road_user_inputs = {
         "Lane_Type": "Single Lane Roads",
         "Roughness": 2000,
