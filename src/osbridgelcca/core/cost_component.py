@@ -19,6 +19,9 @@ from .material_types_consts import (
     get_material_cost_template, get_materials, get_grades, get_units,
     is_valid_material, is_valid_grade, is_valid_unit
 )
+import os
+import sqlite3
+from typing import Optional
 
 class CostComponent(ABC):
     """Abstract Base Class for different cost components in Life Cycle Cost Analysis."""
@@ -233,7 +236,6 @@ class ReconstructionCost(CostComponent):
 
 #COST CALULATIONS 
 
-# For Initial Construction Cost Calculation
 
 
 if __name__ == "__main__":
@@ -298,46 +300,73 @@ if __name__ == "__main__":
     print("Time Cost:", time_cost_component.calculate_cost())  # INR
 
     # 4. Road User Cost Calculation
-    # User defines vehicle types, lane type, roughness, and RF
-    from osbridgelcca.core.material_types_consts import get_vehicle_types, get_lane_types, get_roughness_values, get_rf_values
 
-    # Example user input (can be replaced by actual UI/db input)
-    user_vehicle_data = [
-        {"type": "Small Car", "count": 500, "operation_cost": 5.5},
-        {"type": "Bus", "count": 100, "operation_cost": 15.0},
-        # ... add more as needed
-    ]
-    lane_type = "Two Lane"  # user input
-    roughness = 3000        # user input
-    rf = 10                 # user input
+    # Example user input for road user cost calculation
+    road_user_inputs = {
+        "Lane_Type": "Single Lane Roads",
+        "Roughness": 2000,
+        "RF": 0,
+        "Vehicles": [
+            {"Vehicle_Type": "Small Cars", "Count": 1},
+            {"Vehicle_Type": "HCV", "Count": 1},
+            {"Vehicle_Type": "Buses", "Count": 1},
+        ]
+    }
 
-    # If user does not define vehicle types, default to Big Car
-    if not user_vehicle_data:
-        user_vehicle_data = [{"type": "Big Car", "count": 1, "operation_cost": 6.62}]
+    total_vehicles_affected = sum(v["Count"] for v in road_user_inputs["Vehicles"])
+    
+    import sqlite3
+    import os
+    # Use a relative path for the database
+    db_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'databases', 'IRC_Road_Costs.db')
+    db_path = os.path.abspath(db_path)
 
-    # Sum total road user cost for all vehicle types
     total_road_user_cost = 0
-    total_vehicles_affected = 0
-    for v in user_vehicle_data:
-        total_road_user_cost += v["count"] * v["operation_cost"]
-        total_vehicles_affected += v["count"]
+    construction_time = 1  # Example: 1 year, can be user input
 
-    construction_time_days = time * 365  # eg (days)
-    total_road_user_cost *= construction_time_days
-
-    road_user_cost_component = RoadUserCost(
-        vehicles_affected=total_vehicles_affected,  # user-defined count
-        vehicle_operation_cost=total_road_user_cost / construction_time_days if construction_time_days else 0,
-        construction_time=construction_time_days
-    )
-    print("Road User Cost (all vehicle types):", road_user_cost_component.calculate_cost())  # INR
+    with sqlite3.connect(db_path) as conn:
+        cursor = conn.cursor()
+        # Get the name of the only table in the database
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        table_name = cursor.fetchone()[0]
+        for vehicle in road_user_inputs["Vehicles"]:
+            vehicle_type = vehicle["Vehicle_Type"]
+            count = vehicle["Count"]
+            lane_type = road_user_inputs["Lane_Type"]
+            roughness = road_user_inputs["Roughness"]
+            rf = road_user_inputs["RF"]
+            cursor.execute(f'''
+                SELECT Grand_Cost FROM {table_name} WHERE 
+                    Vehicle_Type = ? AND Lane_Type = ? AND Roughness = ? AND RF = ?
+            ''', (vehicle_type, lane_type, roughness, rf))
+            result = cursor.fetchone()
+            if result:
+                grand_cost = result[0]
+                # Multiply Grand_Cost by Count (from user input, not from DB)
+                road_user_cost_component = RoadUserCost(
+                    vehicles_affected=count,
+                    vehicle_operation_cost=grand_cost,
+                    construction_time=construction_time
+                )
+                total_road_user_cost += road_user_cost_component.calculate_cost()
+            else:
+                print(f"No Grand_Cost found for {vehicle_type}, {lane_type}, {roughness}, {rf}")
+    print("Total Road User Cost:", total_road_user_cost)  # INR
+    
 
     # 5. Additional Carbon Emission Cost Calculation
     reroute_distance = 2  # eg (km)
     co2_emission_per_km = get_carbon_emission_factor_per_km()  # eg (default, kgCO2e/km)
+
+    # For Additional Carbon Emission Cost calculation, define separate user inputs:
+    additional_carbon_inputs = {
+        "vehicles_affected": 10000,  # Example value, replace with actual user input
+        "reroute_distance": 2,       # Example value, replace with actual user input
+        # Add more fields as needed
+    }
     additional_carbon_emission_component = AdditionalCarbonEmissionCost(
-        vehicles_affected=total_vehicles_affected,
-        reroute_distance=reroute_distance,
+        vehicles_affected=additional_carbon_inputs["vehicles_affected"],
+        reroute_distance=additional_carbon_inputs["reroute_distance"],
         co2_emission_per_km=co2_emission_per_km,
         carbon_cost=carbon_cost
     )
@@ -422,18 +451,18 @@ if __name__ == "__main__":
     recycling_design_life = 50  # eg (years)
 
     # For demonstration, assuming user provides both quantity and unit
-    user_input_steel_quantity = 15  # eg (user input, 15 MT)
+    user_input_steel_quantity = 15  # eg (user input, 15 MT or 15000 kg)
     user_input_steel_unit = "MT"   # eg (user input, can be 'MT' or 'kg')
 
-    # Convert all user input to kg
-    if user_input_steel_unit.upper() == "MT":
-        user_input_steel_quantity_kg = user_input_steel_quantity * 1000  # 1 MT = 1000 kg
+    # Always store quantity in MT for calculation
+    if user_input_steel_unit.lower() == "kg":
+        user_input_steel_quantity_mt = user_input_steel_quantity / 1000  # convert kg to MT
     else:
-        user_input_steel_quantity_kg = user_input_steel_quantity  # already in kg
+        user_input_steel_quantity_mt = user_input_steel_quantity  # already in MT
 
     recycling_component = RecyclingCost(
         scrap_value=scrap_value,
-        quantity=user_input_steel_quantity_kg,
+        quantity=user_input_steel_quantity_mt,  # always in MT
         scrap_rate=scrap_rate,
         discount_rate=recycling_discount_rate,
         design_life=recycling_design_life

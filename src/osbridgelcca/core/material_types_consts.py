@@ -117,24 +117,24 @@ def get_all_material_unit_combinations(material_costs):
 
 # Road User Cost Components
 VEHICLE_TYPES = [
-    "Small Car",
-    "Big Car",
-    "Two Wheeler",
-    "Bus",
+    "Small Cars",
+    "Big Cars",
+    "Two Wheelers",
+    "Buses",
     "LCV",
-    "MCV",
-    "HCV"
+    "HCV",
+    "MCV"
 ]
 
 LANE_TYPES = [
-    "Single Lane",
-    "Intermediate Lane",
-    "Two Lane",
-    "Three Lane",
-    "Four Lane"
+    "Single Lane Roads",
+    "Intermediate Lane Roads",
+    "Two Lane Roads",
+    "Four Lane Divided Roads",
+    "Four Lane Divided Expressways Roads"
 ]
 
-ROUGHNESS_VALUES = [2000, 3000, 4000, 6000]
+ROUGHNESS_VALUES = [2000, 3000, 4000, 5000, 6000, 7000, 8000]
 
 RF_VALUES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
 
