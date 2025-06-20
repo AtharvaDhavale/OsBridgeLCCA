@@ -13,7 +13,8 @@ from .cost_defaults import (
     get_routine_inspection_frequency_years,
     get_demolition_cost_rate,
     get_scrap_value_structural_steel,
-    get_structural_steel_scrap_rate
+    get_structural_steel_scrap_rate,
+    get_repair_and_rehabilitation_frequency_years
 )
 from .material_types_consts import (
     get_material_cost_template, get_materials, get_grades, get_units,
@@ -126,7 +127,7 @@ class PeriodicMaintenanceCost(CostComponent):
     def __init__(self, maintenance_cost_rate, construction_cost, discount_rate=0, period=None, design_life=1):
         if period is None:
             period = get_periodic_maintenance_frequency_years()
-        pwf = sum(1 / ((1 + discount_rate) ** (i * period)) for i in range(1, int(design_life / period) + 1))
+        pwf = sum(1 / ((1 + discount_rate) ** (i * period)) for i in range(1, int(design_life / period)))
         cost = maintenance_cost_rate * construction_cost * pwf
         super().__init__(amount=cost, category="Economic", is_initial=False, is_recurring=True, present_worth_factor=pwf)
         self.maintenance_cost_rate = maintenance_cost_rate
@@ -143,7 +144,7 @@ class PeriodicMaintenanceCarbonCost(CostComponent):
     """Calculates emissions from maintenance activities."""
 
     def __init__(self, material_quantity, carbon_emission_factor, carbon_cost, discount_rate=0.0, period=1, design_life=1):
-        pwf = sum(1 / ((1 + discount_rate) ** (i * period)) for i in range(1, int(design_life / period) + 1))
+        pwf = sum(1 / ((1 + discount_rate) ** (i * period)) for i in range(1, int(design_life / period)))
         cost = material_quantity * carbon_emission_factor * carbon_cost * pwf
         super().__init__(amount=cost, category="Environmental", is_initial=False, is_recurring=True, present_worth_factor=pwf)
         self.material_quantity = material_quantity
@@ -160,7 +161,7 @@ class RoutineInspectionCost(CostComponent):
     def __init__(self, quantity, rate, discount_rate=0, design_life=1, period=None):
         if period is None:
             period = get_routine_inspection_frequency_years()
-        pwf = sum(1 / ((1 + discount_rate) ** (i * period)) for i in range(1, int(design_life / period) + 1))
+        pwf = sum(1 / ((1 + discount_rate) ** (i * period)) for i in range(1, int(design_life / period)))
         cost = quantity * rate * pwf
         super().__init__(amount=cost, category="Economic", is_initial=False, is_recurring=True, present_worth_factor=pwf)
         self.quantity = quantity
@@ -178,8 +179,8 @@ class RepairAndRehabilitationCost(CostComponent):
 
     def __init__(self, repair_cost_rate, construction_cost=0, discount_rate=0, period=None, design_life=1):
         if period is None:
-            period = get_periodic_maintenance_frequency_years()
-        pwf = sum(1 / ((1 + discount_rate) ** (i * period)) for i in range(1, int(design_life / period) + 1))
+            period = get_repair_and_rehabilitation_frequency_years()
+        pwf = 1 / ((1 + discount_rate) ** (period))
         cost = repair_cost_rate * construction_cost * pwf
         super().__init__(amount=cost, category="Economic", is_initial=False, is_recurring=True, present_worth_factor=pwf)
 
@@ -241,14 +242,37 @@ class ReconstructionCost(CostComponent):
 if __name__ == "__main__":
     from .cost_defaults import get_annual_routine_inspection_cost_rate
 
+    # === USER INPUTS (specific to project/material/vehicles) ===
     material_costs = get_material_cost_template()
-
-    # user inputs will be here, for eg:
     user_materials = [
-        {"material": "concrete", "grade": "M40", "unit": "cum", "quantity": 214, "rate": 11994},  # eg (quantity: cum, rate: INR/cum)
-        {"material": "steel", "grade": "E 250(Fe 410W)A", "unit": "MT", "quantity": 27.99, "rate": 91565},  # eg (quantity: MT, rate: INR/MT)
-        {"material": "steel", "grade": "E 300(Fe 440)", "unit": "MT", "quantity": 5.69, "rate": 185100},  # eg (quantity: MT, rate: INR/MT)     
+        {"material": "concrete", "grade": "M40", "unit": "cum", "quantity": 214, "rate": 11994},
+        {"material": "steel", "grade": "E 250(Fe 410W)A", "unit": "MT", "quantity": 27.99, "rate": 91565},
+        {"material": "steel", "grade": "E 300(Fe 440)", "unit": "MT", "quantity": 5.69, "rate": 185100},
     ]
+    road_user_inputs = {
+        "Lane_Type": "Single Lane Roads",
+        "Roughness": 2000,
+        "RF": 5,
+        "reroute_distance": 1,  # New factor added (in km, example value)
+        "Vehicles": [
+            {"Vehicle_Type": "Small Cars", "Count": 1000},
+            {"Vehicle_Type": "Big Cars", "Count": 2000},
+            {"Vehicle_Type": "Two Wheelers", "Count": 4000},
+        ]
+    }
+    user_input_steel_quantity = 0  # eg (user input, 15 MT or 15000 kg)
+    user_input_steel_unit = "MT"   # eg (user input, can be 'MT' or 'kg')
+    analysis_period = 50  # years (default, replace with user input as needed)
+
+    # === SHARED INPUTS (define once and use everywhere) ===
+    analysis_period = 50  # years (default, replace with user input as needed)
+    design_life = 50  # years
+    discount_rate = 0.0425  # fraction
+    construction_time = 0.75  # years
+    reroute_distance = 1  # km
+    interest_rate = 0.1  # fraction
+    investment_ratio = 0.5  # fraction
+    
 
     # 1. Initial Construction Cost Calculation
     total_initial_construction_cost = 0
@@ -288,13 +312,10 @@ if __name__ == "__main__":
     print("Total Initial Carbon Emission Cost:", total_carbon_emission_cost)  # INR
 
     # 3. Time Cost Calculation
-    interest_rate = 0.1  # eg (fraction)
-    time = 0.75  # eg (years)
-    investment_ratio = 0.5  # eg (fraction)
     time_cost_component = TimeCost(
         construction_cost=total_initial_construction_cost,
         interest_rate=interest_rate,
-        time=time,
+        time=construction_time,
         investment_ratio=investment_ratio
     )
     print("Time Cost:", time_cost_component.calculate_cost())  # INR
@@ -302,17 +323,6 @@ if __name__ == "__main__":
     # 4. Road User Cost Calculation
 
     # Example user input for road user cost calculation
-    road_user_inputs = {
-        "Lane_Type": "Single Lane Roads",
-        "Roughness": 2000,
-        "RF": 0,
-        "Vehicles": [
-            {"Vehicle_Type": "Small Cars", "Count": 1},
-            {"Vehicle_Type": "HCV", "Count": 1},
-            {"Vehicle_Type": "Buses", "Count": 1},
-        ]
-    }
-
     total_vehicles_affected = sum(v["Count"] for v in road_user_inputs["Vehicles"])
     
     import sqlite3
@@ -322,11 +332,9 @@ if __name__ == "__main__":
     db_path = os.path.abspath(db_path)
 
     total_road_user_cost = 0
-    construction_time = 1  # Example: 1 year, can be user input
-
+    # construction_time and reroute_distance are now shared variables
     with sqlite3.connect(db_path) as conn:
         cursor = conn.cursor()
-        # Get the name of the only table in the database
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
         table_name = cursor.fetchone()[0]
         for vehicle in road_user_inputs["Vehicles"]:
@@ -342,11 +350,11 @@ if __name__ == "__main__":
             result = cursor.fetchone()
             if result:
                 grand_cost = result[0]
-                # Multiply Grand_Cost by Count (from user input, not from DB)
+                ct = construction_time * reroute_distance
                 road_user_cost_component = RoadUserCost(
                     vehicles_affected=count,
                     vehicle_operation_cost=grand_cost,
-                    construction_time=construction_time
+                    construction_time=ct
                 )
                 total_road_user_cost += road_user_cost_component.calculate_cost()
             else:
@@ -355,14 +363,12 @@ if __name__ == "__main__":
     
 
     # 5. Additional Carbon Emission Cost Calculation
-    reroute_distance = 2  # eg (km)
     co2_emission_per_km = get_carbon_emission_factor_per_km()  # eg (default, kgCO2e/km)
-
-    # For Additional Carbon Emission Cost calculation, define separate user inputs:
+    # Use the sum of all vehicle counts from road_user_inputs as vehicles_affected
+    vehicles_affected = sum(v["Count"] for v in road_user_inputs["Vehicles"])
     additional_carbon_inputs = {
-        "vehicles_affected": 10000,  # Example value, replace with actual user input
-        "reroute_distance": 2,       # Example value, replace with actual user input
-        # Add more fields as needed
+        "vehicles_affected": vehicles_affected,  # Use total vehicles from road user calculation
+        "reroute_distance": reroute_distance,  # Use shared variable
     }
     additional_carbon_emission_component = AdditionalCarbonEmissionCost(
         vehicles_affected=additional_carbon_inputs["vehicles_affected"],
@@ -375,8 +381,6 @@ if __name__ == "__main__":
     # 6. Periodic Maintenance Cost Calculation
     maintenance_cost_rate = get_periodic_maintenance_cost_rate()  # eg (default, fraction)
     period = get_periodic_maintenance_frequency_years()  # eg (default, years)
-    discount_rate = 0.05  # eg (fraction)
-    design_life = 50  # eg (years)
     periodic_maintenance_component = PeriodicMaintenanceCost(
         maintenance_cost_rate=maintenance_cost_rate,
         construction_cost=total_initial_construction_cost,
@@ -387,15 +391,16 @@ if __name__ == "__main__":
     print("Periodic Maintenance Cost:", periodic_maintenance_component.calculate_cost())  # INR
 
     # 7. Periodic Maintenance Carbon Emission Cost Calculation
+    # Define required variables before calculation
     maintenance_concrete_kg = total_concrete_kg
     maintenance_steel_kg = total_steel_kg
-    maintenance_concrete_emission_factor = get_carbon_emission_factor("Concrete (M25)")  # eg (default, kgCO2e/kg)
-    maintenance_steel_emission_factor = get_carbon_emission_factor("Rebar")  # eg (default, kgCO2e/kg)
-    maintenance_carbon_cost = get_social_cost_of_carbon()  # eg (default, INR/kg)
-    maintenance_discount_rate = 0.05  # eg (fraction)
-    maintenance_period = get_periodic_maintenance_frequency_years()  # eg (default, years)
-    maintenance_design_life = 50  # eg (years)
-    pwf = sum(1 / ((1 + maintenance_discount_rate) ** (i * maintenance_period)) for i in range(1, int(maintenance_design_life / maintenance_period) + 1))
+    maintenance_concrete_emission_factor = get_carbon_emission_factor("Concrete (M25)")
+    maintenance_steel_emission_factor = get_carbon_emission_factor("Rebar")
+    maintenance_carbon_cost = get_social_cost_of_carbon()
+    maintenance_discount_rate = discount_rate
+    maintenance_period = get_periodic_maintenance_frequency_years()
+    maintenance_design_life = design_life
+    pwf = sum(1 / ((1 + maintenance_discount_rate) ** (i * maintenance_period)) for i in range(1, int(maintenance_design_life / maintenance_period)))
     periodic_maintenance_carbon_cost = (
         (maintenance_concrete_kg * maintenance_concrete_emission_factor) +
         (maintenance_steel_kg * maintenance_steel_emission_factor)
@@ -404,9 +409,8 @@ if __name__ == "__main__":
 
     # 8. Annual Routine Inspection Cost Calculation
     inspection_rate = get_annual_routine_inspection_cost_rate()  # eg (default, fraction)
-    inspection_discount_rate = 0.05  # eg (fraction)
-    inspection_design_life = 50  # eg (years)
-    inspection_period = 1  # eg (annual)
+    inspection_discount_rate = discount_rate
+    inspection_design_life = design_life
     total_routine_inspection_cost = 0
     for item in user_materials:
         inspection_component = RoutineInspectionCost(
@@ -414,7 +418,7 @@ if __name__ == "__main__":
             rate=inspection_rate,
             discount_rate=inspection_discount_rate,
             design_life=inspection_design_life,
-            period=inspection_period
+            period=1  # always annual
         )
         cost = inspection_component.calculate_cost()
         total_routine_inspection_cost += cost
@@ -422,7 +426,7 @@ if __name__ == "__main__":
 
     # 9. Repair and Rehabilitation Cost Calculation
     repair_cost_rate = get_repair_and_rehabilitation_cost_rate()  # eg (default, fraction)
-    repair_period = get_periodic_maintenance_frequency_years()  # eg (default, years)
+    repair_period = get_repair_and_rehabilitation_frequency_years()  # eg (default, years)
     repair_component = RepairAndRehabilitationCost(
         repair_cost_rate=repair_cost_rate,
         construction_cost=total_initial_construction_cost,
@@ -434,8 +438,8 @@ if __name__ == "__main__":
 
     # 10. Demolition and Disposal Cost Calculation
     demolition_rate = get_demolition_cost_rate()  # eg (default, fraction)
-    demolition_discount_rate = 0.05  # eg (fraction)
-    demolition_design_life = 50  # eg (years)
+    demolition_discount_rate = discount_rate
+    demolition_design_life = design_life
     demolition_component = DemolitionCost(
         demolition_rate=demolition_rate,
         construction_cost=total_initial_construction_cost,
@@ -447,48 +451,45 @@ if __name__ == "__main__":
     # 11. Recycling Cost Calculation
     scrap_value = get_scrap_value_structural_steel()  # eg (default, INR/MT)
     scrap_rate = get_structural_steel_scrap_rate()  # eg (default, fraction)
-    recycling_discount_rate = 0.05  # eg (fraction)
-    recycling_design_life = 50  # eg (years)
-
-    # For demonstration, assuming user provides both quantity and unit
-    user_input_steel_quantity = 15  # eg (user input, 15 MT or 15000 kg)
+    recycling_design_life = design_life
+    user_input_steel_quantity = 0  # eg (user input, 15 MT or 15000 kg)
     user_input_steel_unit = "MT"   # eg (user input, can be 'MT' or 'kg')
-
-    # Always store quantity in MT for calculation
     if user_input_steel_unit.lower() == "kg":
-        user_input_steel_quantity_mt = user_input_steel_quantity / 1000  # convert kg to MT
+        user_input_steel_quantity_mt = user_input_steel_quantity / 1000
     else:
-        user_input_steel_quantity_mt = user_input_steel_quantity  # already in MT
-
+        user_input_steel_quantity_mt = user_input_steel_quantity
     recycling_component = RecyclingCost(
         scrap_value=scrap_value,
-        quantity=user_input_steel_quantity_mt,  # always in MT
+        quantity=user_input_steel_quantity_mt,
         scrap_rate=scrap_rate,
-        discount_rate=recycling_discount_rate,
+        discount_rate=discount_rate,
         design_life=recycling_design_life
     )
     print("Recycling Cost (user-input steel only):", recycling_component.calculate_cost())  # INR
 
     # 12. Reconstruction Cost Calculation 
-    demolition_cost = demolition_component.calculate_cost()  # eg (INR, use previously calculated demolition cost)
-    reconstruction_cost = total_initial_construction_cost  # eg (INR)
-    reconstruction_carbon_cost = total_carbon_emission_cost  # eg (INR)
-    reconstruction_time_cost = time_cost_component.calculate_cost()  # eg (INR)
-    reconstruction_roaduser_cost = road_user_cost_component.calculate_cost()  # eg (INR)
-    reconstruction_rerouting_carbon_cost = additional_carbon_emission_component.calculate_cost()  # eg (INR)
-    reconstruction_design_life = 50  # eg (years)
-    reconstruction_discount_rate = 0.05  # eg (fraction)
-    reconstruction_component = ReconstructionCost(
-        demolition_cost=demolition_cost,
-        reconstruction_cost=reconstruction_cost,
-        reconstruction_carbon_cost=reconstruction_carbon_cost,
-        reconstruction_time_cost=reconstruction_time_cost,
-        reconstruction_roaduser_cost=reconstruction_roaduser_cost,
-        reconstruction_rerouting_carbon_cost=reconstruction_rerouting_carbon_cost,
-        design_life=reconstruction_design_life,
-        discount_rate=reconstruction_discount_rate
-    )
-    print("Reconstruction Cost:", reconstruction_component.calculate_cost())  # INR
+    demolition_cost = demolition_component.calculate_cost()
+    reconstruction_cost = total_initial_construction_cost
+    reconstruction_carbon_cost = total_carbon_emission_cost
+    reconstruction_time_cost = time_cost_component.calculate_cost()
+    reconstruction_roaduser_cost = road_user_cost_component.calculate_cost()
+    reconstruction_rerouting_carbon_cost = additional_carbon_emission_component.calculate_cost()
+    reconstruction_design_life = design_life
+    # Only calculate reconstruction cost if analysis_period > design_life
+    if analysis_period > design_life:
+        reconstruction_component = ReconstructionCost(
+            demolition_cost=demolition_cost,
+            reconstruction_cost=reconstruction_cost,
+            reconstruction_carbon_cost=reconstruction_carbon_cost,
+            reconstruction_time_cost=reconstruction_time_cost,
+            reconstruction_roaduser_cost=reconstruction_roaduser_cost,
+            reconstruction_rerouting_carbon_cost=reconstruction_rerouting_carbon_cost,
+            design_life=reconstruction_design_life,
+            discount_rate=discount_rate
+        )
+        print("Reconstruction Cost:", reconstruction_component.calculate_cost())  # INR
+    else:
+        print("Reconstruction Cost:", 0)  # INR
 
 
 

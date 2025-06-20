@@ -62,6 +62,7 @@ ANNUAL_ROUTINE_INSPECTION_COST_RATE = 0.01  # 1% as a decimal
 REPAIR_AND_REHABILITATION_COST_RATE = 0.10  # 10% as a decimal
 PERIODIC_MAINTENANCE_FREQUENCY_YEARS = 5
 ROUTINE_INSPECTION_FREQUENCY_YEARS = 1
+REPAIR_AND_REHABILITATION_FREQUENCY_YEARS = 30
 
 def get_periodic_maintenance_cost_rate():
     return PERIODIC_MAINTENANCE_COST_RATE
@@ -77,6 +78,9 @@ def get_periodic_maintenance_frequency_years():
 
 def get_routine_inspection_frequency_years():
     return ROUTINE_INSPECTION_FREQUENCY_YEARS
+
+def get_repair_and_rehabilitation_frequency_years():
+    return REPAIR_AND_REHABILITATION_FREQUENCY_YEARS
 
 # Demolition and recycling recommended values
 DEMOLITION_COST_RATE = 0.10  # 10% as a decimal
