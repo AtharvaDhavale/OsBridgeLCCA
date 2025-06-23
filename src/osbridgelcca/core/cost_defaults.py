@@ -39,6 +39,7 @@ CARBON_EMISSION_FACTOR_PER_KM = 0.1213  # kgCO2e/km
 SOCIAL_COST_OF_CARBON = 6.3936  # INR/kg
 COEFFICIENT_EMBODIED_ENERGY_HYSD_STEEL = 30  # MJ/kg
 COEFFICIENT_CARBON_EMISSIONS_STRUCTURAL_STEEL = 2.6000  # kgCO2e/kg
+CONCRETE_CO2_EMISSION_FACTOR = 0.487032864540167  # kgCO2e/unit (custom value for UI consistency)
 
 def get_coefficient_carbon_emissions_concrete():
     return COEFFICIENT_CARBON_EMISSIONS_CONCRETE
@@ -54,6 +55,13 @@ def get_coefficient_embodied_energy_hysd_steel():
 
 def get_coefficient_carbon_emissions_structural_steel():
     return COEFFICIENT_CARBON_EMISSIONS_STRUCTURAL_STEEL
+
+def get_concrete_co2_emission_factor():
+    """
+    Returns the CO2 emission factor for concrete (custom value for UI consistency).
+    :return: float
+    """
+    return CONCRETE_CO2_EMISSION_FACTOR
 
 # Maintenance, inspection, and repair cost rates and frequencies
 
